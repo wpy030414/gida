@@ -53,3 +53,23 @@
   - 大文件（>1MB blob）在宜搭 TextareaField 中可能受限——需要后续 ADR 处理分块存储。
   - `searchFormDatas` 在 200 条/页限制下，对于大仓库（数千个 object）需要分页拉取，当前 `pageSize=200` 可能不足。
 - **何时重新审视**：首次连接真实宜搭实例进行性能测试时。
+
+- **更新**（2026-09-28）：git_objects 和 git_refs 表单已通过 openyida CLI 创建在 `APP_Z1IR327SHW7JQRQOU5GW` 下，fieldId 已记录在 `.cache/gida-schema.json`。
+
+## ADR-005：选择 oyd.jsx 自定义页面作为 WebUI 而非独立 SPA
+
+- **日期**：2026-09-28
+- **状态**：已采纳
+- **背景**：需要一个 WebUI 来浏览仓库（分支、提交历史、文件内容）。两条路：A) 开发独立 SPA（React/Vue）部署在外部服务器；B) 直接在宜搭内开发自定义页面（oyd.jsx）。
+- **考虑过的方案**：
+  - A) 独立 SPA：部署在 Vercel/Netlify 等平台。优点：完整的现代前端工具链（TypeScript、ES2022、任意 npm 依赖）。缺点：需要额外服务器、用户需离开宜搭工作台、跨域认证复杂。
+  - B) oyd.jsx 自定义页面：在宜搭应用内运行。优点：零额外服务器、直接调用宜搭 API 无跨域问题、用户无需离开工作台、与宜搭权限体系天然集成。缺点：ES5 语法限制、无 npm 依赖、单文件约束、无法使用现代前端工具链。
+- **决策**：选 B（oyd.jsx 自定义页面）。
+- **为什么选这个**：gida 的核心价值在宜搭生态内 —— 用户已有宜搭应用、表单和数据权限。让 WebUI 运行在宜搭内部意味着零部署、零认证配置、零跨域。oyd.jsx 的语法限制虽然增加了开发成本，但页面功能（列表展示 + 条件渲染 + fetch API）完全在其能力范围内。
+- **为什么不选其他**：独立 SPA 需要用户配置 CORS、管理 cookie/token 认证、维护额外部署。对宜搭生态内的开发者来说，这套额外的运维负担与"低代码平台做 git"的核心理念背道而驰。
+- **后果**：
+  - WebUI 代码使用 ES5 语法，无法直接复用 TypeScript 侧的 parser（parseCommitInfo/parseTreeEntries 需用纯 JS 重写）。
+  - 事件绑定必须用箭头函数或函数表达式，禁止 IIFE 和 JSX 内的函数调用。
+  - CSS 通过 `didMount` 注入 `<style>` 标签，使用 `--oy-*` 命名空间变量配合 hsl() 色值。
+  - 页面发布依赖 `openyida publish` CLI 命令，每次修改后必须执行。
+- **何时重新审视**：如果未来宜搭支持更现代的前端开发方式（如原生 TypeScript 支持、npm 依赖），可考虑升级 WebUI 工具链。

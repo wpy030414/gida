@@ -1,0 +1,35 @@
+{
+  "appType": "<YOUR_APP_TYPE>",
+  "appName": "gida",
+  "corpId": "<YOUR_CORP_ID>",
+  "baseUrl": "https://www.aliwork.com",
+  "workbenchUrl": "https://www.aliwork.com/<YOUR_APP_TYPE>/workbench",
+  "forms": {
+    "git_objects": {
+      "formUuid": "<FORM_UUID_FROM_CREATE-FORM>",
+      "title": "git_objects",
+      "formType": "receipt",
+      "fields": {
+        "object_sha": "<FIELD_ID>",
+        "object_type": "<FIELD_ID>",
+        "content": "<FIELD_ID>"
+      }
+    },
+    "git_refs": {
+      "formUuid": "<FORM_UUID_FROM_CREATE-FORM>",
+      "title": "git_refs",
+      "formType": "receipt",
+      "fields": {
+        "ref_path": "<FIELD_ID>",
+        "target_sha": "<FIELD_ID>"
+      }
+    }
+  },
+  "pages": {
+    "repo_browser": {
+      "pageId": "<PAGE_FORM_UUID>",
+      "name": "仓库浏览器",
+      "url": "https://www.aliwork.com/<YOUR_APP_TYPE>/workbench/<PAGE_FORM_UUID>"
+    }
+  }
+}

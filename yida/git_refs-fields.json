@@ -1,0 +1,15 @@
+[
+  {
+    "type": "TextField",
+    "label": "ref_path",
+    "placeholder": "refs/heads/main",
+    "required": true,
+    "unique": true
+  },
+  {
+    "type": "TextField",
+    "label": "target_sha",
+    "placeholder": "目标 commit 的 40 位 SHA-1 哈希值",
+    "required": true
+  }
+]

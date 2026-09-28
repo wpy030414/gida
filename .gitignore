@@ -1,3 +1,7 @@
-node_modules/
+.cache/
 dist/
+node_modules/
+pages/build/
+pages/dist/
 .env
+yida/*.state.json

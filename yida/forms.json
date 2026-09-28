@@ -1,0 +1,20 @@
+{
+  "forms": [
+    {
+      "key": "git_objects",
+      "title": "git_objects",
+      "fieldsFile": "git_objects-fields.json",
+      "layout": "section",
+      "theme": "comfortable",
+      "labelAlign": "left"
+    },
+    {
+      "key": "git_refs",
+      "title": "git_refs",
+      "fieldsFile": "git_refs-fields.json",
+      "layout": "section",
+      "theme": "comfortable",
+      "labelAlign": "left"
+    }
+  ]
+}

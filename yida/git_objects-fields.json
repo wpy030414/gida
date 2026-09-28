@@ -1,0 +1,26 @@
+[
+  {
+    "type": "TextField",
+    "label": "object_sha",
+    "placeholder": "40 位 SHA-1 哈希值",
+    "required": true,
+    "unique": true
+  },
+  {
+    "type": "SelectField",
+    "label": "object_type",
+    "required": true,
+    "options": [
+      { "label": "blob", "value": "blob" },
+      { "label": "tree", "value": "tree" },
+      { "label": "commit", "value": "commit" },
+      { "label": "tag", "value": "tag" }
+    ]
+  },
+  {
+    "type": "TextareaField",
+    "label": "content",
+    "placeholder": "base64 编码的 git object 内容",
+    "required": true
+  }
+]

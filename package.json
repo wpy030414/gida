@@ -13,12 +13,19 @@
     "test": "tsx test/final.ts",
     "pkg": "pkg dist/index.js --targets node18-win-x64,node18-linux-x64,node18-macos-x64 --output bin/git-remote-yida"
   },
-  "keywords": ["git", "remote", "helper", "yida", "dingtalk"],
+  "keywords": [
+    "git",
+    "remote",
+    "helper",
+    "yida",
+    "dingtalk"
+  ],
   "author": "",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
     "@types/node": "^26.6.3",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
 }
