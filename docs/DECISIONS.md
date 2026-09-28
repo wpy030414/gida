@@ -73,3 +73,23 @@
   - CSS 通过 `didMount` 注入 `<style>` 标签，使用 `--oy-*` 命名空间变量配合 hsl() 色值。
   - 页面发布依赖 `openyida publish` CLI 命令，每次修改后必须执行。
 - **何时重新审视**：如果未来宜搭支持更现代的前端开发方式（如原生 TypeScript 支持、npm 依赖），可考虑升级 WebUI 工具链。
+
+## ADR-006：多仓库支持——repo_name on git_refs only（objects 全局共享）
+
+- **日期**：2026-09-28
+- **状态**：已采纳
+- **背景**：gida 当前为单仓库实现——一对 git_objects + git_refs 表单对应一个仓库。用户需要将其扩展为多仓库平台，在同一个宜搭应用下托管多个独立的 git 仓库。
+- **考虑过的方案**：
+  - A) 在 git_refs 增加 `repo_name` 字段，git_objects 不变。对象全局共享（内容寻址），refs 按仓库隔离。URL 简化为 `yida::APP/REPO_NAME`，表单 UUID 从 `.cache/gida-schema.json` 配置读取。
+  - B) 在两个表单都增加 `repo_name` 字段，对象也按仓库存储。
+- **决策**：选 A（仅 git_refs 增加 repo_name）。
+- **为什么选这个**：git objects 是内容寻址的（SHA-1），同一内容在任何仓库中都有相同的 SHA。在 objects 表中重复存储相同 SHA 的不同行会破坏这一基本语义，且浪费存储。refs 按仓库隔离即可实现完整的多仓库语义——同一 `refs/heads/main` 在 repo-a 和 repo-b 中指向不同的 commit SHA，互不干扰。
+- **为什么不选其他**：方案 B 违反了 git 的对象模型。两个仓库中相同的 README.md 会产生同一个 blob SHA，但需要存两行，浪费 API 调用和存储，且 `object_sha` 失去唯一性约束。
+- **后果**：
+  - git_refs 表新增 `repo_name` 字段（TextField, required: false, default: "default"）。
+  - `ref_path` 的 unique 约束移除，唯一性由应用层通过 `(repo_name, ref_path)` 组合查询保证。
+  - URL 从 3 段简化为 2 段：`yida::APP/REPO_NAME`——用户无需关心内部表单 UUID。
+  - `StorageBackend` 接口方法签名不变，`repoName` 是构造参数。protocol 层零改动。
+  - WebUI 增加仓库选择器，Overview/Branches/History/Files 均按仓库过滤。
+  - E2E 测试覆盖多仓库隔离和对象共享场景。
+- **何时重新审视**：如果出现需要对 objects 做按仓库的生命周期管理（如删除仓库时级联清理 objects），需评估是否有必要通过遍历 ref 可达性来识别孤立对象，或在 objects 表增加引用计数。

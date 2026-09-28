@@ -20,6 +20,7 @@
       "title": "git_refs",
       "formType": "receipt",
       "fields": {
+        "repo_name": "<FIELD_ID>",
         "ref_path": "<FIELD_ID>",
         "target_sha": "<FIELD_ID>"
       }

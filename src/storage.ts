@@ -43,10 +43,12 @@ import { buildObject, hashBlob, hashObject, parseObject, verifyHash } from './cr
 export class FileStorage implements StorageBackend {
   private objectsDir: string;
   private refsPath: string;
+  private repoName: string;
 
-  constructor(gitDir: string) {
+  constructor(gitDir: string, repoName: string = 'default') {
+    this.repoName = repoName;
     this.objectsDir = join(gitDir, 'yida-objects');
-    this.refsPath = join(gitDir, 'yida-refs.json');
+    this.refsPath = join(gitDir, `yida-refs-${repoName}.json`);
   }
 
   async #init(): Promise<void> {
@@ -164,17 +166,20 @@ export class YidaStorage implements StorageBackend {
   private appType: string;
   private objectsFormUuid: string;
   private refsFormUuid: string;
+  private repoName: string;
   private baseUrl: string;
 
   constructor(options: {
     appType: string;
     objectsFormUuid: string;
     refsFormUuid: string;
+    repoName?: string;
     baseUrl?: string;
   }) {
     this.appType = options.appType;
     this.objectsFormUuid = options.objectsFormUuid;
     this.refsFormUuid = options.refsFormUuid;
+    this.repoName = options.repoName || 'default';
     this.baseUrl = options.baseUrl || 'https://www.aliwork.com';
   }
 
@@ -240,7 +245,7 @@ export class YidaStorage implements StorageBackend {
   async listRefs(): Promise<GitRef[]> {
     const payload = new URLSearchParams({
       formUuid: this.refsFormUuid,
-      searchFieldJson: JSON.stringify({}),
+      searchFieldJson: JSON.stringify({ repo_name: this.repoName }),
       currentPage: '1',
       pageSize: '200',
     });
@@ -257,7 +262,7 @@ export class YidaStorage implements StorageBackend {
   async getRef(path: string): Promise<string | null> {
     const payload = new URLSearchParams({
       formUuid: this.refsFormUuid,
-      searchFieldJson: JSON.stringify({ ref_path: path }),
+      searchFieldJson: JSON.stringify({ repo_name: this.repoName, ref_path: path }),
       currentPage: '1',
       pageSize: '1',
     });
@@ -271,7 +276,7 @@ export class YidaStorage implements StorageBackend {
     // First check if ref already exists (for update vs create)
     const payload = new URLSearchParams({
       formUuid: this.refsFormUuid,
-      searchFieldJson: JSON.stringify({ ref_path: path }),
+      searchFieldJson: JSON.stringify({ repo_name: this.repoName, ref_path: path }),
       currentPage: '1',
       pageSize: '1',
     });
@@ -292,6 +297,7 @@ export class YidaStorage implements StorageBackend {
       const createPayload = new URLSearchParams({
         formUuid: this.refsFormUuid,
         formDataJson: JSON.stringify({
+          repo_name: this.repoName,
           ref_path: path,
           target_sha: sha,
         }),
@@ -303,7 +309,7 @@ export class YidaStorage implements StorageBackend {
   async deleteRef(path: string): Promise<void> {
     const payload = new URLSearchParams({
       formUuid: this.refsFormUuid,
-      searchFieldJson: JSON.stringify({ ref_path: path }),
+      searchFieldJson: JSON.stringify({ repo_name: this.repoName, ref_path: path }),
       currentPage: '1',
       pageSize: '1',
     });

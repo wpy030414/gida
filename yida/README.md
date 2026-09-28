@@ -71,11 +71,13 @@ pnpm install && pnpm build
 ### Step 8：使用
 
 ```bash
-git remote add yida yida::<appType>/<objectsFormUuid>/<refsFormUuid>
+git remote add yida yida::<appType>/<repoName>
 git push yida main
 ```
 
-推送后数据会实时显示在 WebUI 中（通过宜搭工作台进入"仓库浏览器"页面）。
+> `repoName` 可以是任意名称（小写字母 + 连字符），例如 `my-project`、`backend-api`。
+> 同一个 `<appType>` 下可以创建多个仓库，只需使用不同的 `repoName`。
+> 推送后数据会实时显示在 WebUI 中——通过宜搭工作台进入"仓库浏览器"页面，使用顶部的仓库选择器切换仓库。
 
 ## 表单结构
 
@@ -93,8 +95,20 @@ git push yida main
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
+| repo_name | TextField | 否 | 仓库名称，用于多仓库隔离 |
 | ref_path | TextField | 是 | refs/heads/main 等 |
 | target_sha | TextField | 是 | 目标 commit 的 40 位 SHA-1 |
+
+## 多仓库
+
+同一个 gida 应用可以托管多个 git 仓库。每个仓库用不同的 `repoName` 区分：
+
+```bash
+git remote add yida yida::APP_Z1IR327SHW7JQRQOU5GW/my-project
+git remote add yida yida::APP_Z1IR327SHW7JQRQOU5GW/docs
+```
+
+git_objects 全局共享（内容寻址去重），git_refs 按 `repo_name` 隔离。
 
 ## 自定义 WebUI 常量
 

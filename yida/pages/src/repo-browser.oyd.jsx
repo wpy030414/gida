@@ -15,12 +15,15 @@ var F = {
   obj_sha: '<YOUR_OBJECT_SHA_FIELD_ID>',
   obj_type: '<YOUR_OBJECT_TYPE_FIELD_ID>',
   obj_content: '<YOUR_CONTENT_FIELD_ID>',
+  ref_repo: '<YOUR_REPO_NAME_FIELD_ID>',
   ref_path: '<YOUR_REF_PATH_FIELD_ID>',
   ref_sha: '<YOUR_TARGET_SHA_FIELD_ID>',
 };
 
 var _customState = {
   route: 'overview',
+  currentRepo: 'default',
+  repoList: [],
   refs: [],
   selectedBranch: null,
   commitList: [],
@@ -107,9 +110,12 @@ export function didMount() {
     '.gida-commit-detail { padding:12px; background:hsl(var(--oy-muted)); border-radius:var(--oy-radius); margin-top:8px; }',
     '.gida-commit-detail p { margin-bottom:4px; font-size:13px; }',
     '.gida-code-block { background:hsl(var(--oy-muted)); border-radius:var(--oy-radius); padding:16px; font-family:"SF Mono","Cascadia Code",monospace; font-size:13px; line-height:1.6; overflow-x:auto; white-space:pre-wrap; word-break:break-all; max-height:480px; overflow-y:auto; }',
+    '.gida-repo-select { padding:6px 12px; border:1px solid hsl(var(--oy-border)); border-radius:var(--oy-radius); background:hsl(var(--oy-background)); color:hsl(var(--oy-foreground)); font-size:13px; cursor:pointer; min-width:160px; }',
+    '.gida-repo-select:focus { outline:none; border-color:hsl(var(--oy-primary)); }',
+    '.gida-header-left { display:flex; align-items:center; gap:12px; }',
   ].join('\n');
   document.head.appendChild(style);
-  self.loadOverview();
+  self.loadRepos();
 }
 
 // ─── State helpers ──────────────────────────────────────────────────────────
@@ -139,6 +145,15 @@ function searchObjects(self, sha) {
 }
 
 function searchRefs(self) {
+  var sf = {};
+  var repo = sget(self).currentRepo || 'default';
+  sf[F.ref_repo] = repo;
+  return apiFetch(self, 'searchFormDatas.json',
+    new URLSearchParams({ formUuid: FORMS.refs, searchFieldJson: JSON.stringify(sf), currentPage: '1', pageSize: '200' }));
+}
+
+function listRepos(self) {
+  // Fetch ALL refs unfiltered, then extract distinct repo_name values
   return apiFetch(self, 'searchFormDatas.json',
     new URLSearchParams({ formUuid: FORMS.refs, searchFieldJson: '{}', currentPage: '1', pageSize: '200' }));
 }
@@ -212,6 +227,37 @@ function isTagRef(path) { return path.indexOf('refs/tags/') === 0; }
 function displayRef(path) { return path.replace('refs/heads/', '').replace('refs/tags/', ''); }
 
 // ─── Loaders ────────────────────────────────────────────────────────────────
+export function loadRepos() {
+  var self = this;
+  sset(self, { loading: true, error: null, forceRender: Date.now() });
+
+  listRepos(self).then(function(data) {
+    var repos = [];
+    var seen = {};
+    if (data && data.formDataList) {
+      for (var i = 0; i < data.formDataList.length; i++) {
+        var rn = data.formDataList[i].formData[F.ref_repo] || 'default';
+        if (!seen[rn]) { seen[rn] = true; repos.push(rn); }
+      }
+    }
+    if (repos.length === 0) repos.push('default');
+    var state = sget(self);
+    var curRepo = state.currentRepo || 'default';
+    if (repos.indexOf(curRepo) === -1) curRepo = repos[0];
+    sset(self, { repoList: repos, currentRepo: curRepo, forceRender: Date.now() });
+    loadOverview.call(self);
+  }).catch(function(err) {
+    sset(self, { repoList: ['default'], currentRepo: 'default',
+      loading: false, error: 'Load repos failed: ' + (err && err.message ? err.message : ''), forceRender: Date.now() });
+  });
+}
+
+export function switchRepo(repoName) {
+  var self = this;
+  sset(self, { currentRepo: repoName, forceRender: Date.now() });
+  loadOverview.call(self);
+}
+
 export function loadOverview() {
   var self = this;
   sset(self, { route: 'overview', refs: [], selectedBranch: null, commitList: [],
@@ -365,6 +411,7 @@ export function handleClick(action, arg1, arg2, arg3) {
   var self = this;
   if (action === 'nav-overview') loadOverview.call(self);
   else if (action === 'nav-branches') loadBranches.call(self);
+  else if (action === 'repo-select') switchRepo.call(self, arg1);
   else if (action === 'ref-click') loadHistory.call(self, arg1, arg2);
   else if (action === 'commit-browse') browseCommit.call(self, arg1);
   else if (action === 'commit-parent') loadHistory.call(self, arg1, arg2);
@@ -390,7 +437,7 @@ export function renderJsx() {
     <div className="oyd-page">
       <div style={{display:'none'}}>{forceRender}</div>
       <div className="gida-container">
-        {_renderHeader(state)}
+        {_renderHeader(self, state)}
         {_renderNav(self, route)}
         {error && <div className="gida-error">{error}</div>}
         {loading && <div className="gida-loading">Loading...</div>}
@@ -402,15 +449,27 @@ export function renderJsx() {
   );
 }
 
-function _renderHeader(state) {
+function _renderHeader(self, state) {
   var totalObj = state.totalObjects || 0;
   var refCount = (state.refs || []).length;
+  var repoList = state.repoList || ['default'];
+  var currentRepo = state.currentRepo || 'default';
+
+  var repoOptions = [];
+  for (var ri = 0; ri < repoList.length; ri++) {
+    repoOptions.push(<option key={repoList[ri]} value={repoList[ri]}>{repoList[ri]}</option>);
+  }
+
   return (
     <div className="gida-header">
-      <div>
-        <h1>gida — Repository Browser</h1>
-        <div className="gida-subtitle">{totalObj} objects / {refCount} refs  |  {APP_TYPE}</div>
+      <div className="gida-header-left">
+        <h1>gida</h1>
+        <select className="gida-repo-select" value={currentRepo}
+          onChange={function(e) { self.handleClick('repo-select', e.target.value); }}>
+          {repoOptions}
+        </select>
       </div>
+      <div className="gida-subtitle">{totalObj} objects (shared) / {refCount} refs  |  {APP_TYPE}</div>
     </div>
   );
 }

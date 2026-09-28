@@ -26,12 +26,19 @@ gida WebUI 是独立的宜搭自定义页面，在浏览器中通过 `fetch()` �
 
 | 模块 | 职责 |
 |------|------|
-| `index.ts` | 入口。解析 `yida::APP/FORM_OBJ/FORM_REF` URL，根据 `YIDA_LOCAL` 环境变量选择 FileStorage 或 YidaStorage，启动协议循环。 |
-| `protocol.ts` | git remote helper 协议实现。`splitBlocks()` 按 `\n\n` 分块解析命令（capabilities → list → push/fetch）。`doPush()` 将 fast-import 流导入 temp bare repo 后提取 objects/refs 存入 storage。`doFetch()` 反向操作：从 storage 取 objects、写入 temp bare repo、执行 fast-export 输出。 |
-| `storage.ts` | `StorageBackend` 接口定义 7 个方法（putObject/getObject/hasObject/listRefs/getRef/setRef/deleteRef）。`FileStorage` 用文件系统模拟。`YidaStorage` 通过 fetch 调用宜搭 REST API。 |
+| `index.ts` | 入口。解析 `yida::APP/REPO_NAME` URL，从 `.cache/gida-schema.json` 读取表单 UUID，根据 `YIDA_LOCAL` 选择 FileStorage 或 YidaStorage，启动协议循环。 |
+| `protocol.ts` | git remote helper 协议实现。`splitBlocks()` 按 `\n\n` 分块解析命令（capabilities → list → push/fetch）。`doPush()` 将 fast-import 流导入 temp bare repo 后提取 objects/refs 存入 storage。`doFetch()` 反向操作：从 storage 取 objects、写入 temp bare repo、执行 fast-export 输出。**repo 无感知**——所有仓库隔离由 storage 层负责。 |
+| `storage.ts` | `StorageBackend` 接口定义 7 个方法（putObject/getObject/hasObject/listRefs/getRef/setRef/deleteRef）。`FileStorage` 用文件系统模拟（objects 共享目录 + 每 repo 独立 refs JSON）。`YidaStorage` 通过 fetch 调用宜搭 REST API，ref 操作按 `repo_name` 过滤，object 操作全局共享。 |
 | `crypto.ts` | 纯函数：`hashBlob` / `hashObject`（SHA-1）、`buildObject` / `parseObject`（git object 编解码）、`verifyHash`。 |
 | `types.ts` | `GitObject`（sha + type + content）和 `GitRef`（path + sha）。 |
-| `repo-browser.oyd.jsx` | 宜搭自定义页面：仓库浏览器。直接通过 `fetch()` + `URLSearchParams` 查询 git_objects / git_refs 表单，提供分支列表、提交历史浏览、文件树导航、文件内容查看。 |
+| `repo-browser.oyd.jsx` | 宜搭自定义页面：多仓库浏览器。通过 `listRepos()` 提取所有 `repo_name`，顶部 `<select>` 切换仓库。分支列表、提交历史、文件树导航、文件内容查看均按仓库过滤。 |
+
+## 多仓库设计
+
+- **git_objects**（全局共享）：对象按 SHA-1 内容寻址存储，同一 blob 在所有仓库中只存一份。
+- **git_refs**（按仓库隔离）：新增 `repo_name` 字段。所有 ref 查询均按 `(repo_name, ref_path)` 组合过滤。
+- **URL 格式**：`yida::APP_TYPE/REPO_NAME`。表单 UUID 从 `.cache/gida-schema.json` 读取。
+- **StorageBackend 接口不变**：`repoName` 是构造参数，protocol 层无需改动。
 
 ## 模块关系
 
